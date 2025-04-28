@@ -36,26 +36,20 @@ def Genomic_Data_Preprocess(genomic_data, subgroup_num):
         AF_avg = sum(row[0] for row in values) / TMB_num if values else 0
         CCF_avg = sum(row[1] for row in values) / TMB_num if values else 0
         instance_list.append([key1, key2, key3, TMB_num, AF_avg, CCF_avg])
-    #print(instance_list[:10])
 
-    # 归一化
+    ## normalization
     df = pd.DataFrame(instance_list, columns=['Study ID', 'PATIENT_ID', 'clone', 'TMB_num', 'AF_avg', 'CCF_clone'])
-    #df['Study ID'] = df['Study ID'].astype(int)
     groups = df.groupby('Study ID')
     df_normalized = groups.apply(Quantile_Normalize).reset_index(drop=True)
     instance_list_normalized = np.array(df_normalized).tolist()
-    #print(instance_list_normalized[:10])
 
     return instance_list_normalized
 
 
 def Quantile_Normalize(group, q_low=0.1, q_high=0.9):
-    lower = group['TMB_num'].quantile(q_low)
     upper = group['TMB_num'].quantile(q_high)
     scale_factor = upper
-    print("scale_factor:", scale_factor)
     group['TMB_num'] = group['TMB_num'] / scale_factor
-    print("group['TMB_num']:", group['TMB_num'])
     return group
 
 
@@ -89,18 +83,18 @@ def Laplacian_matrix_calculation(raw_data, subgroup_num, clone_num):
     raw_data: [['Study ID', 'ORR', 'PFS', 'Status', ['TMB_sum', 'AF_avg', 'CCF_clone']]]
     '''
     group_features = {i: [] for i in range(subgroup_num)}
-    max_samples = 0  # 记录所有 group 中的最大样本数
+    max_samples = 0  # Record the maximum number of samples in all groups
 
-    # 提取特征并计算最大样本数
+    ## Extract features and calculate the maximum number of samples
     for item in raw_data:
-        group = int(item[0]) - 1  # 假设 Study ID 是从 1 开始的，调整为 0 索引
+        group = int(item[0]) - 1  # Assuming that Study ID starts at 1, adjust to 0 index
         matrix = item[4]
-        flat_matrix = [val for sublist in matrix for val in sublist]  # 展平
-        padded_matrix = flat_matrix[:clone_num * 3] + [0] * (clone_num * 3 - len(flat_matrix))  # 补齐
+        flat_matrix = [val for sublist in matrix for val in sublist]  # flatten
+        padded_matrix = flat_matrix[:clone_num * 3] + [0] * (clone_num * 3 - len(flat_matrix))  # padding
         group_features[group].append(padded_matrix)
-        max_samples = max(max_samples, len(group_features[group]))  # 更新最大样本数
+        max_samples = max(max_samples, len(group_features[group]))  # Update the maximum number of samples
 
-    feature_dim = clone_num * 3  # 每个样本的特征维度
+    feature_dim = clone_num * 3   # Feature dimension of each sample
 
     group_vectors = []
     for group in range(subgroup_num):
@@ -129,25 +123,23 @@ def Laplacian_matrix_calculation(raw_data, subgroup_num, clone_num):
 
 
 if __name__ == '__main__':
-    data_path = pd.ExcelFile("SYUCC&GENE+.xlsx")
+    data_path = pd.ExcelFile("Experimental.xlsx")
 
-    # 临床数据——bag
+    ## Clinical data——bag
     clinical_data = pd.read_excel(data_path, 0, dtype={'Study ID': str, 'PATIENT_ID': str})
     bag_list = clinical_data[['Study ID', 'PATIENT_ID', 'ORR', 'PFS', 'Status']].values.tolist()
-    #print(bag_list[0])
 
-    # 获取subgroup数
+    ## Get the number of subgroups
     df = data_path.parse(sheet_name=0)
     subgroup_num = df.iloc[:, 0].max()
     torch.save(subgroup_num, 'subgroup_num.pt')
-    # print("subgroup_num", subgroup_num)
 
-    # 基因数据——instance
+    ## Genomic data——instance
     genomic_data = pd.read_excel(data_path, 1, dtype={'Study ID': str, "PATIENT_ID": str})
     genomic_data = genomic_data[['Study ID', 'PATIENT_ID', 'AF', 'CCF', 'clone']].values.tolist()
     instance_list = Genomic_Data_Preprocess(genomic_data, subgroup_num)
 
-    # 获取clone数
+    ## Get the number of clones
     df = data_path.parse(sheet_name=1)
     clone_num = df.iloc[:, -1].max()
     torch.save(clone_num, 'clone_num.pt')

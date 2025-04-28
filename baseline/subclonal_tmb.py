@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-@Time    : 2025/4/28 19:42
+@Time    : 2025/4/28 22:36
 @Author  : AadSama
 @Software: Pycharm
 """
@@ -11,30 +11,28 @@ from imblearn.over_sampling import RandomOverSampler
 import numpy as np
 import pandas as pd
 
-from tmb_dataset import TMB_MTGraph_dataset
+from tmb_dataset import subclonal_dataset
 from model.TMB_MTGraph import TMB_MTGraph
 from evaluation.metrics_calculation import Metrics_Calculation
 from evaluation.KM_plot import KM_Plot
-from evaluation.weight_analysis import Violin_Plot
-from evaluation.weight_analysis import Heatmap_Plot
 
 import warnings
 warnings.filterwarnings("ignore")
 
 
 ## Load dataset features
-L = torch.load("data/L.pt")
-S = torch.load("data/S.pt")
-subgroup_num = torch.load("data/subgroup_num.pt")
-clone_num = torch.load("data/clone_num.pt")
-max_clone = clone_num
+L = torch.load("../data/L.pt")
+S = torch.load("../data/S.pt")
+subgroup_num = torch.load("../data/subgroup_num.pt")
+clone_num = torch.load("../data/clone_num.pt")
+max_clone = clone_num - 1
 
 ## load hyperparameters
-gamma = torch.load('hyperparameter/gamma.pt')
-pos_weights = torch.load('hyperparameter/pos_weights.pt')
-epochs = torch.load('hyperparameter/epochs.pt')
-oversample_rates = torch.load('hyperparameter/oversample_rates.pt')
-lrs = torch.load('hyperparameter/lrs.pt')
+gamma = torch.load('../hyperparameter/gamma.pt')
+pos_weights = torch.load('../hyperparameter/pos_weights.pt')
+epochs = torch.load('../hyperparameter/epochs.pt')
+oversample_rates = torch.load('../hyperparameter/oversample_rates.pt')
+lrs = torch.load('../hyperparameter/lrs.pt')
 
 ## Training results
 study_cv = []
@@ -52,6 +50,7 @@ def TMB_MTGraph_Train(train_loader, models, optimizers, fold):
     sorted_data: [['TMB_sum', 'AF_avg', 'CCF_clone']]
     response: ['Study ID', 'ORR', 'PFS', 'Status']
     '''
+
     for i in range(subgroup_num):
         models[i].train()
 
@@ -177,7 +176,7 @@ def Cross_Validation(raw_data):
     '''
     raw_data: [['Study ID', 'ORR', 'PFS', 'Status', ['TMB_sum', 'AF_avg', 'CCF_clone']]]
     '''
-    dataset = TMB_MTGraph_dataset(raw_data)
+    dataset = subclonal_dataset(raw_data)
     kfold = StratifiedKFold(n_splits=3, shuffle=True, random_state=42)
     labels = [patient[1] for patient in raw_data]
 
@@ -217,16 +216,11 @@ def Cross_Validation(raw_data):
         "group": pd.Series(group_cv).astype(int),
         "fold": fold_cv
     })
-    result_cv.to_csv('results/TMB_MTGraph.csv', index=False)
-    Metrics_Calculation('results/TMB_MTGraph.csv')
-    KM_Plot('results/TMB_MTGraph.csv')
-
-    df = pd.DataFrame(A_matrix_cv)
-    df.to_csv('results/attention_weights.csv', index=False, header=False)
-    Violin_Plot('results/attention_weights.csv')
-    Heatmap_Plot('results/attention_weights.csv', clone_num, subgroup_num)
+    result_cv.to_csv('../results/total_tmb.csv', index=False)
+    Metrics_Calculation('../results/total_tmb.csv')
+    KM_Plot('../results/total_tmb.csv')
 
 
 if __name__ == "__main__":
-    raw_data = torch.load("data/raw_data.pt")
+    raw_data = torch.load("../data/raw_data.pt")
     Cross_Validation(raw_data)
