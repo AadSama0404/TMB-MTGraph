@@ -20,7 +20,6 @@ def KM_Plot(file_path):
     ## Draw the survival curves of Score-H (group == 1) and Score-L (group == 0) respectively
     for group in [1, 0]:
         group_data = data[data['group'] == group]
-        print(group_data)
 
         ## Survival analysis using Kaplan-Meier Fitter
         kmf.fit(group_data['PFS'], event_observed=group_data['Status'], label=f'Score-{"H" if group == 1 else "L"}')
@@ -53,7 +52,7 @@ def KM_Plot(file_path):
     plt.text(25, 0.55, f"HR = {hr_formatted}", ha='right', fontsize=12, color='black')
 
     print(f"HR = {hr_formatted}")
-    print(f"p = {logrank_p_value:.4f}")
+    print(f"{logrank_p_value:.4f}" if logrank_p_value >= 0.0001 else "0.0000")
 
     plt.show()
 

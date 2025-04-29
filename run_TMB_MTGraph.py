@@ -123,7 +123,9 @@ def TMB_MTGraph_Val(val_loader, models, save_flag, fold):
     print(f'Test Loss: {test_loss_all.item():.4f}, Test error: {test_error_all:.4f}')
 
     if (save_flag == 1):
-        # [label, predicted_prob, predicted_label, study_id, PFS, Status, fold]
+        '''
+        [label, predicted_prob, predicted_label, study_id, PFS, Status, fold]
+        '''
         for i in range(len(prediction_list)):
             study_cv.append(prediction_list[i][3])
             true_label_cv.append(prediction_list[i][0])
@@ -206,7 +208,8 @@ def Cross_Validation(raw_data):
             TMB_MTGraph_Train(train_loader, models, optimizers, fold)
             TMB_MTGraph_Val(val_loader, models, epoch == epochs[fold] - 1, fold)
 
-    print("**************************************************************************")
+    print("\n")
+    print("*****************************************************************************")
     print("Cross validation results:\n")
     result_cv = pd.DataFrame({
         "study": study_cv,
@@ -224,7 +227,7 @@ def Cross_Validation(raw_data):
     df = pd.DataFrame(A_matrix_cv)
     df.to_csv('results/attention_weights.csv', index=False, header=False)
     Violin_Plot('results/attention_weights.csv')
-    Heatmap_Plot('results/attention_weights.csv', clone_num, subgroup_num)
+    Heatmap_Plot('results/attention_weights.csv', subgroup_num)
 
 
 if __name__ == "__main__":

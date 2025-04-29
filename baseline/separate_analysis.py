@@ -1,9 +1,9 @@
-# -*- coding: utf-8 -*-
-"""
-@Time    : 2025/4/28 22:36
+# -*- coding: UTF-8 -*-
+'''
+@Time    : 2025/4/29 11:37
 @Author  : AadSama
 @Software: Pycharm
-"""
+'''
 import torch
 from torch.utils.data import DataLoader, Subset
 from sklearn.model_selection import StratifiedKFold
@@ -11,24 +11,23 @@ from imblearn.over_sampling import RandomOverSampler
 import numpy as np
 import pandas as pd
 
-from tmb_dataset import total_tmb_dataset
+from tmb_dataset import TMB_MTGraph_dataset
 from model.TMB_MTGraph import TMB_MTGraph
 from evaluation.metrics_calculation import Metrics_Calculation
 from evaluation.KM_plot import KM_Plot
+from evaluation.weight_analysis import Violin_Plot
+from evaluation.weight_analysis import Heatmap_Plot
 
 import warnings
 warnings.filterwarnings("ignore")
 
 
 ## Load dataset features
-L = torch.load("../data/L.pt")
-S = torch.load("../data/S.pt")
 subgroup_num = torch.load("../data/subgroup_num.pt")
 clone_num = torch.load("../data/clone_num.pt")
-max_clone = 1
+max_clone = clone_num
 
 ## load hyperparameters
-gamma = torch.load('../hyperparameter/gamma.pt')
 pos_weights = torch.load('../hyperparameter/pos_weights.pt')
 epochs = torch.load('../hyperparameter/epochs.pt')
 oversample_rates = torch.load('../hyperparameter/oversample_rates.pt')
@@ -42,10 +41,9 @@ Status_cv = []
 score_cv = []
 group_cv = []
 fold_cv = []
-A_matrix_cv = []
 
 
-def TMB_MTGraph_Train(train_loader, models, optimizers, fold):
+def Separate_Train(train_loader, models, optimizers, fold):
     '''
     sorted_data: [['TMB_sum', 'AF_avg', 'CCF_clone']]
     response: ['Study ID', 'ORR', 'PFS', 'Status']
@@ -59,43 +57,19 @@ def TMB_MTGraph_Train(train_loader, models, optimizers, fold):
         study_index = int(study_id - 1)
         label = response[1]
 
-        loss = []
-        error = []
-        theta_X = []
-        for i in range(subgroup_num):
-            loss_i, predicted_prob_i, error_i, _, _ = models[i].calculate(features, label, pos_weights[fold][i])
-            loss.append(loss_i)
-            error.append(error_i)
-            theta_X.append(predicted_prob_i)
-
-        # Calculate the first part of the loss related to S and loss
-        loss_subgroup = sum(loss[i] * S[study_index][i] for i in range(subgroup_num))
-
-        # Stack theta_X into a vector
-        theta_X_vec = torch.stack(theta_X).squeeze(1)  # shape: [subgroup_num, 1]
-        # Convert L to a PyTorch tensor
-        L_tensor = torch.tensor(L, dtype=torch.float32)  # shape: [subgroup_num, subgroup_num]
-        # Compute regularization using matrix multiplication
-        loss_regularization = torch.mm(theta_X_vec.T, torch.mm(L_tensor, theta_X_vec))  # theta_X^T L theta_X
-        # Final loss
-        loss_all = loss_subgroup + gamma * loss_regularization
-
-        # Backpropagate
-        for i in range(subgroup_num):
-            optimizers[i].zero_grad()
-        loss_all.backward()
-        for i in range(subgroup_num):
-            optimizers[i].step()
+        loss, predicted_prob, error, _, _ = models[study_index].calculate(features, label, pos_weights[fold][study_index])
+        optimizers[study_index].zero_grad()
+        loss.backward()
+        optimizers[study_index].step()
 
 
-def TMB_MTGraph_Val(val_loader, models, save_flag, fold):
+def Separate_Val(val_loader, models, save_flag, fold):
     for i in range(subgroup_num):
         models[i].eval()
 
     test_loss_all = 0.
     test_error_all = 0.
     prediction_list = []
-    A_matrix = np.zeros((len(val_loader), clone_num + 1), dtype=float)
 
     with torch.no_grad():
         for batch_idx, (features, response) in enumerate(val_loader):
@@ -112,15 +86,12 @@ def TMB_MTGraph_Val(val_loader, models, save_flag, fold):
             test_error_all = test_error_all + error
 
             prediction_list.append([label.item(), predicted_prob.item(), predicted_label.item(), study_id.item(), PFS.item(), Status.item()])
-            for i in range(A.shape[1]):
-                A_matrix[batch_idx][i] = np.round(A[0][i].detach().numpy(), 4)
-            A_matrix[batch_idx][clone_num] = study_id
 
     test_loss_all = test_loss_all / len(val_loader)
     test_error_all = test_error_all / len(val_loader)
     print(f'Test Loss: {test_loss_all.item():.4f}, Test error: {test_error_all:.4f}')
 
-    if (save_flag == 1):
+    if(save_flag ==1):
         '''
         [label, predicted_prob, predicted_label, study_id, PFS, Status, fold]
         '''
@@ -132,7 +103,6 @@ def TMB_MTGraph_Val(val_loader, models, save_flag, fold):
             score_cv.append(prediction_list[i][1])
             group_cv.append(prediction_list[i][2])
             fold_cv.append(fold)
-            A_matrix_cv.append(A_matrix[i])
 
 
 def Oversampling(oversample_rate, train_subset_raw, max_clone):
@@ -177,7 +147,7 @@ def Cross_Validation(raw_data):
     '''
     raw_data: [['Study ID', 'ORR', 'PFS', 'Status', ['TMB_sum', 'AF_avg', 'CCF_clone']]]
     '''
-    dataset = total_tmb_dataset(raw_data)
+    dataset = TMB_MTGraph_dataset(raw_data)
     kfold = StratifiedKFold(n_splits=3, shuffle=True, random_state=42)
     labels = [patient[1] for patient in raw_data]
 
@@ -203,8 +173,8 @@ def Cross_Validation(raw_data):
 
         for epoch in range(epochs[fold]):
             print(f"Epoch {epoch + 1} --------------------------------------------------------------------")
-            TMB_MTGraph_Train(train_loader, models, optimizers, fold)
-            TMB_MTGraph_Val(val_loader, models, epoch == epochs[fold] - 1, fold)
+            Separate_Train(train_loader, models, optimizers, fold)
+            Separate_Val(val_loader, models, epoch==epochs[fold]-1, fold)
 
     print("\n")
     print("*****************************************************************************")
@@ -218,11 +188,13 @@ def Cross_Validation(raw_data):
         "group": pd.Series(group_cv).astype(int),
         "fold": fold_cv
     })
-    result_cv.to_csv('../results/subclonal_tmb.csv', index=False)
-    Metrics_Calculation('../results/subclonal_tmb.csv')
-    KM_Plot('../results/subclonal_tmb.csv')
+    result_cv.to_csv('../results/Separate_analysis.csv', index=False)
+    Metrics_Calculation('../results/Separate_analysis.csv')
+    KM_Plot('../results/Separate_analysis.csv')
+
 
 
 if __name__ == "__main__":
     raw_data = torch.load("../data/raw_data.pt")
+
     Cross_Validation(raw_data)
