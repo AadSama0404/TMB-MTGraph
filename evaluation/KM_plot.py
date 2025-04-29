@@ -52,7 +52,7 @@ def KM_Plot(file_path):
     plt.text(25, 0.55, f"HR = {hr_formatted}", ha='right', fontsize=12, color='black')
 
     print(f"HR = {hr_formatted}")
-    print(f"{logrank_p_value:.4f}" if logrank_p_value >= 0.0001 else "0.0000")
+    print(f"p = {logrank_p_value:.4f}" if logrank_p_value >= 0.0001 else "0.0000")
 
     plt.show()
 

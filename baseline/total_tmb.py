@@ -10,6 +10,7 @@ from sklearn.model_selection import StratifiedKFold
 from imblearn.over_sampling import RandomOverSampler
 import numpy as np
 import pandas as pd
+import random
 
 from tmb_dataset import total_tmb_dataset
 from model.TMB_MTGraph import TMB_MTGraph
@@ -18,6 +19,9 @@ from evaluation.KM_plot import KM_Plot
 
 import warnings
 warnings.filterwarnings("ignore")
+random.seed(42)
+np.random.seed(42)
+torch.manual_seed(42)
 
 
 ## Load dataset features
@@ -42,7 +46,6 @@ Status_cv = []
 score_cv = []
 group_cv = []
 fold_cv = []
-A_matrix_cv = []
 
 
 def TMB_MTGraph_Train(train_loader, models, optimizers, fold):
@@ -132,7 +135,6 @@ def TMB_MTGraph_Val(val_loader, models, save_flag, fold):
             score_cv.append(prediction_list[i][1])
             group_cv.append(prediction_list[i][2])
             fold_cv.append(fold)
-            A_matrix_cv.append(A_matrix[i])
 
 
 def Oversampling(oversample_rate, train_subset_raw, max_clone):
@@ -218,9 +220,9 @@ def Cross_Validation(raw_data):
         "group": pd.Series(group_cv).astype(int),
         "fold": fold_cv
     })
-    result_cv.to_csv('../results/subclonal_tmb.csv', index=False)
-    Metrics_Calculation('../results/subclonal_tmb.csv')
-    KM_Plot('../results/subclonal_tmb.csv')
+    result_cv.to_csv('../results/Total_TMB.csv', index=False)
+    Metrics_Calculation('../results/Total_TMB.csv')
+    KM_Plot('../results/Total_TMB.csv')
 
 
 if __name__ == "__main__":

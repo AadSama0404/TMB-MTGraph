@@ -10,6 +10,7 @@ from sklearn.model_selection import StratifiedKFold
 import numpy as np
 import pandas as pd
 import random
+import statistics
 
 from tmb_dataset import pad_dataset
 from model.MLP import MLP
@@ -18,6 +19,9 @@ from evaluation.KM_plot import KM_Plot
 
 import warnings
 warnings.filterwarnings("ignore")
+random.seed(42)
+np.random.seed(42)
+torch.manual_seed(42)
 
 
 ## Load dataset features
@@ -25,12 +29,12 @@ clone_num = torch.load("../data/clone_num.pt")
 max_clone = clone_num
 
 ## load hyperparameters
-separate_pos_weights = torch.tensor(torch.load('../hyperparameter/pos_weights.pt'))
-pos_weights = np.median(separate_pos_weights, axis=1)
+separate_pos_weights = torch.load('../hyperparameter/pos_weights.pt')
+pos_weights = [statistics.median(row) for row in separate_pos_weights]
 epochs = torch.load('../hyperparameter/epochs.pt')
 oversample_rates = torch.load('../hyperparameter/oversample_rates.pt')
-separate_lrs = torch.tensor(torch.load('../hyperparameter/lrs.pt'))
-lrs = np.median(separate_lrs, axis=1)
+separate_lrs = torch.load('../hyperparameter/lrs.pt')
+lrs = [statistics.median(row) for row in separate_lrs]
 
 ## Training results
 study_cv = []

@@ -10,6 +10,8 @@ from sklearn.model_selection import StratifiedKFold
 from imblearn.over_sampling import RandomOverSampler
 import numpy as np
 import pandas as pd
+import random
+import statistics
 
 from tmb_dataset import TMB_MTGraph_dataset
 from model.TMB_MTGraph import TMB_MTGraph
@@ -18,6 +20,9 @@ from evaluation.KM_plot import KM_Plot
 
 import warnings
 warnings.filterwarnings("ignore")
+random.seed(42)
+np.random.seed(42)
+torch.manual_seed(42)
 
 
 ## Load dataset features
@@ -25,12 +30,12 @@ clone_num = torch.load("../data/clone_num.pt")
 max_clone = clone_num
 
 ## load hyperparameters
-separate_pos_weights = torch.tensor(torch.load('../hyperparameter/pos_weights.pt'))
-pos_weights = np.median(separate_pos_weights, axis=1)
+separate_pos_weights = torch.load('../hyperparameter/pos_weights.pt')
+pos_weights = [statistics.median(row) for row in separate_pos_weights]
 epochs = torch.load('../hyperparameter/epochs.pt')
 oversample_rates = torch.load('../hyperparameter/oversample_rates.pt')
-separate_lrs = torch.tensor(torch.load('../hyperparameter/lrs.pt'))
-lrs = np.median(separate_lrs, axis=1)
+separate_lrs = torch.load('../hyperparameter/lrs.pt')
+lrs = [statistics.median(row) for row in separate_lrs]
 
 ## Training results
 study_cv = []
@@ -184,9 +189,9 @@ def Cross_Validation(raw_data):
         "group": pd.Series(group_cv).astype(int),
         "fold": fold_cv
     })
-    result_cv.to_csv('../results/Pooled_analysis.csv', index=False)
-    Metrics_Calculation('../results/Pooled_analysis.csv')
-    KM_Plot('../results/Pooled_analysis.csv')
+    result_cv.to_csv('../results/Pooled_Analysis.csv', index=False)
+    Metrics_Calculation('../results/Pooled_Analysis.csv')
+    KM_Plot('../results/Pooled_Analysis.csv')
 
 
 if __name__ == "__main__":

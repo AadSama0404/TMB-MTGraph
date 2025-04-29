@@ -10,16 +10,18 @@ from sklearn.model_selection import StratifiedKFold
 from imblearn.over_sampling import RandomOverSampler
 import numpy as np
 import pandas as pd
+import random
 
 from tmb_dataset import TMB_MTGraph_dataset
 from model.TMB_MTGraph import TMB_MTGraph
 from evaluation.metrics_calculation import Metrics_Calculation
 from evaluation.KM_plot import KM_Plot
-from evaluation.weight_analysis import Violin_Plot
-from evaluation.weight_analysis import Heatmap_Plot
 
 import warnings
 warnings.filterwarnings("ignore")
+random.seed(42)
+np.random.seed(42)
+torch.manual_seed(42)
 
 
 ## Load dataset features
@@ -80,7 +82,7 @@ def Separate_Val(val_loader, models, save_flag, fold):
             PFS = response[2]
             Status = response[3]
 
-            loss, predicted_prob, error, predicted_label, A = models[study_index].calculate(features, label)
+            loss, predicted_prob, error, predicted_label, _ = models[study_index].calculate(features, label)
 
             test_loss_all = test_loss_all + loss.data[0]
             test_error_all = test_error_all + error
@@ -188,13 +190,11 @@ def Cross_Validation(raw_data):
         "group": pd.Series(group_cv).astype(int),
         "fold": fold_cv
     })
-    result_cv.to_csv('../results/Separate_analysis.csv', index=False)
-    Metrics_Calculation('../results/Separate_analysis.csv')
-    KM_Plot('../results/Separate_analysis.csv')
-
+    result_cv.to_csv('../results/Separate_Analysis.csv', index=False)
+    Metrics_Calculation('../results/Separate_Analysis.csv')
+    KM_Plot('../results/Separate_Analysis.csv')
 
 
 if __name__ == "__main__":
     raw_data = torch.load("../data/raw_data.pt")
-
     Cross_Validation(raw_data)

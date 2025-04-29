@@ -10,6 +10,7 @@ from sklearn.model_selection import StratifiedKFold
 from imblearn.over_sampling import RandomOverSampler
 import numpy as np
 import pandas as pd
+import random
 
 from tmb_dataset import TMB_MTGraph_dataset
 from model.TMB_MTGraph import TMB_MTGraph
@@ -20,6 +21,9 @@ from evaluation.weight_analysis import Heatmap_Plot
 
 import warnings
 warnings.filterwarnings("ignore")
+random.seed(42)
+np.random.seed(42)
+torch.manual_seed(42)
 
 
 ## Load dataset features
@@ -225,9 +229,9 @@ def Cross_Validation(raw_data):
     KM_Plot('results/TMB_MTGraph.csv')
 
     df = pd.DataFrame(A_matrix_cv)
-    df.to_csv('results/attention_weights.csv', index=False, header=False)
-    Violin_Plot('results/attention_weights.csv')
-    Heatmap_Plot('results/attention_weights.csv', subgroup_num)
+    df.to_csv('results/Attention_Weights.csv', index=False, header=False)
+    Violin_Plot('results/Attention_Weights.csv')
+    Heatmap_Plot('results/Attention_Weights.csv', subgroup_num)
 
 
 if __name__ == "__main__":
