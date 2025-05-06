@@ -36,6 +36,6 @@ python run_TMB_MTGraph.py
 
 Outputs including survival analysis results and plots will be saved in the results/ folder.
 
-### Step 3: Run Run Baseline Models
+### Step 3: Run Baseline Models
 
 All baseline methods are located in the baseline/ folder. You can run them individually for performance comparison.
