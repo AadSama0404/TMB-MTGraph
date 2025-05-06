@@ -11,7 +11,7 @@ This repository provides the implementation of **TMB-MTGraph**, a prognostic pre
   Includes all baseline models used for comparison.
 
 - `results/`  
-  Stores outputs such as processed data, predictions, and plots.
+  Stores outputs such as predictions and plots.
 
 - `run_TMB_MTGraph.py`  
   Main script to train and evaluate TMB-MTGraph.
