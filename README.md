@@ -24,6 +24,7 @@ Run the following command to preprocess input data:
 
 ```bash
 python data/data_preprocessing.py
+```
 
 ### Step 2: Run TMB-MTGraph
 
@@ -31,6 +32,7 @@ Execute the main script to train and evaluate the model:
 
 ```bash
 python run_TMB_MTGraph.py
+```
 
 Outputs including survival analysis results and plots will be saved in the results/ folder.
 
